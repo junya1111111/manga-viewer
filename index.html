@@ -67,7 +67,7 @@
         background-color: #fff;
     }
       
-    /* [수정] 뷰어 밖 하단 컨트롤 영역 (가로 2분할 구조) */
+    /* 뷰어 밖 하단 컨트롤 영역 (가로 2분할 구조) */
     .controls {
         width: 100%;
         padding: 10px 15px; 
@@ -78,11 +78,11 @@
         gap: 10px; 
         background-color: #f4f4f5;
         border-top: 1px solid #e4e4e7;
-        pointer-events: none; /* 클릭 이벤트 투과 (단순 시각용) */
+        /* pointer-events: none; (삭제됨: 이 영역 클릭 이벤트를 감지하여 무시하기 위함) */
         box-sizing: border-box;
     }
       
-    /* [수정] 좌/우 50% 크기의 표시 영역 */
+    /* 좌/우 50% 크기의 표시 영역 */
     .controls .btn-img {
         flex: 1; /* 좌우 1:1 동일 비율 배치 */
         padding: 12px 0;
@@ -113,7 +113,7 @@
         </div>
     </div>
     
-    <!-- [수정] 스케치 모양의 하단 가로 배치 컨트롤 표시 영역 -->
+    <!-- 스케치 모양의 하단 가로 배치 컨트롤 표시 영역 -->
     <div class="controls">
         <div class="btn-img">∧</div>
         <div class="btn-img">∨</div>
@@ -158,6 +158,11 @@
 
     // 화면 터치/클릭 위치 판별 (우측 하단 1/4 = 다음, 그 외 = 이전)
     window.addEventListener('click', (e) => {
+        // [추가] 클릭한 위치가 하단 컨트롤 구역(.controls) 내부인 경우 아무 동작도 하지 않음
+        if (e.target.closest('.controls')) {
+            return;
+        }
+
         const isRightHalf = e.clientX > window.innerWidth / 2;
         const isBottomHalf = e.clientY > window.innerHeight / 2;
 
