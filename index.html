@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notion Manga Viewer</title>
 <style>
     /* 전체 화면 여백 제거 및 배경 설정 (노션 임베드 시 꽉 차게) */
@@ -35,11 +35,10 @@
         flex-grow: 1; /* 남은 공간을 모두 차지 */
         min-height: 0; /* ★ 추가: 내부 이미지 높이 때문에 뷰어 영역이 무한정 길어지는 것 방지 */
         overflow-y: auto;
+        overflow-x: auto; /* ★ 수정: 확대 시 가로 스크롤 허용 */
         background-color: #1a1a1a; /* 만화 몰입도를 위한 어두운 배경 */
         position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        display: block; /* ★ 수정: flex 대신 block을 사용하여 확대 시 좌측 잘림 현상 방지 */
         padding-bottom: 100vh; /* 하단 스크롤 여백 */
         
         /* 스크롤바 숨기기 */
@@ -53,7 +52,8 @@
         
     /* 만화 페이지 크기 및 비율 설정 */
     .manga-page {
-        width: 100%;
+        width: calc(100% * var(--zoom, 1)); /* ★ 수정: 터치 줌 배율 적용 */
+        margin: 0 auto 20px auto; /* ★ 수정: block 안에서 가운데 정렬 및 기존 하단 여백 유지 */
         flex-shrink: 0;   /* 비율 왜곡 방지 */
         aspect-ratio: 1 / 1.414; /* 점프 만화 원고(B4) 비율 */
         display: flex;
@@ -61,8 +61,6 @@
         align-items: center;
         border-bottom: 2px solid #000;
         box-sizing: border-box;
-        /* 이미지 사이 간격 */
-        margin-bottom: 20px;
     }
     /* 마지막 이미지 아래 간격 처리 */
     .manga-page:last-child {
@@ -75,9 +73,6 @@
         height: 100%;
         object-fit: contain; /* 이미지가 잘리지 않고 비율 유지 */
         background-color: #fff;
-        touch-action: pan-y;
-        position: relative;
-        will-change: transform;
     }
     /* 하단 UI들을 묶어서 뷰어 위에 띄우는 컨테이너 */
     .bottom-ui {
@@ -202,99 +197,9 @@
         const targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
         viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
     }
-
-    // 모바일 터치 확대(Pinch Zoom), 이동(Pan), 더블탭 터치 스크립트
-    let scale = 1, pointX = 0, pointY = 0;
-    let startX = 0, startY = 0, initialDist = 0, startScale = 1;
-    let targetImg = null, isTouchHandled = false, lastTap = 0;
-
-    const viewer = document.getElementById('mangaViewer');
-
-    function updateTransform(img) {
-        if (!img) return;
-        if (scale <= 1) {
-            scale = 1; pointX = 0; pointY = 0;
-            img.style.transform = '';
-            img.style.zIndex = '';
-        } else {
-            img.style.zIndex = '5';
-            img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-        }
-    }
-
-    viewer.addEventListener('touchstart', (e) => {
-        const img = e.target.closest('.manga-page img');
-        if (!img) return;
-
-        if (targetImg && targetImg !== img && scale > 1) {
-            scale = 1;
-            updateTransform(targetImg);
-        }
-        targetImg = img;
-
-        if (e.touches.length === 2) {
-            isTouchHandled = true;
-            initialDist = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
-            );
-            startScale = scale;
-        } else if (e.touches.length === 1 && scale > 1) {
-            startX = e.touches[0].clientX - pointX;
-            startY = e.touches[0].clientY - pointY;
-        }
-    }, { passive: true });
-
-    viewer.addEventListener('touchmove', (e) => {
-        if (!targetImg) return;
-
-        if (e.touches.length === 2) {
-            isTouchHandled = true;
-            if (e.cancelable) e.preventDefault();
-            const dist = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
-            );
-            if (initialDist > 0) {
-                scale = Math.min(Math.max(1, startScale * (dist / initialDist)), 4);
-                updateTransform(targetImg);
-            }
-        } else if (e.touches.length === 1 && scale > 1) {
-            isTouchHandled = true;
-            if (e.cancelable) e.preventDefault();
-            pointX = e.touches[0].clientX - startX;
-            pointY = e.touches[0].clientY - startY;
-            updateTransform(targetImg);
-        }
-    }, { passive: false });
-
-    viewer.addEventListener('touchend', (e) => {
-        const now = Date.now();
-        const img = e.target.closest('.manga-page img');
-
-        if (img && now - lastTap < 300) {
-            isTouchHandled = true;
-            if (scale > 1) {
-                scale = 1;
-            } else {
-                scale = 2.5;
-                targetImg = img;
-            }
-            updateTransform(img);
-        }
-        lastTap = now;
-
-        if (e.touches.length < 2) {
-            if (scale < 1.05) {
-                scale = 1;
-                updateTransform(targetImg);
-            }
-            setTimeout(() => { isTouchHandled = false; }, 300);
-        }
-    });
-
+     
     window.addEventListener('click', (e) => {
-        if (e.target.closest('.controls') || e.target.closest('.mode-selector') || isTouchHandled || scale > 1) {
+        if (e.target.closest('.controls') || e.target.closest('.mode-selector')) {
             return;
         }
      
@@ -317,6 +222,39 @@
             scrollManga(-1);
         }
     });
+
+    // ★ 추가: 폰 터치 핀치 줌(두 손가락 확대/축소) 기능
+    let currentZoom = 1;
+    let initialZoom = 1;
+    let startDist = 0;
+    const viewer = document.getElementById('mangaViewer');
+
+    viewer.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            startDist = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+            initialZoom = currentZoom;
+        }
+    }, { passive: true });
+
+    viewer.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault(); // 기본 웹 줌 방지 및 자체 줌 제어
+            const dist = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+            const scale = dist / startDist;
+            
+            // 배율 1배(기본) ~ 4배 제한
+            currentZoom = Math.max(1, Math.min(initialZoom * scale, 4)); 
+            
+            // CSS 변수 업데이트를 통해 너비 조정 (비율은 aspect-ratio로 자동유지)
+            viewer.style.setProperty('--zoom', currentZoom);
+        }
+    }, { passive: false });
 </script>
         
 </body>
