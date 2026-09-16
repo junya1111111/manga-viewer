@@ -5,64 +5,64 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notion Manga Viewer</title>
 <style>
-    /* 전체 화면 여백 제거 및 배경 설정 */
-    body {
+    /* 전체 화면 여백 제거 및 노션 임베드 영역 전체 활용 */
+    html, body {
+        width: 100%;
+        height: 100%;
         margin: 0;
         padding: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
-        height: 100%;
         background-color: #ffffff;
         font-family: 'Malgun Gothic', sans-serif;
-        user-select: none; /* 연속 클릭 시 텍스트 드래그 방지 */
+        user-select: none;
+        overflow: hidden;
     }
         
     /* 전체 컨테이너 */
     .viewer-wrapper {
         width: 100%;
-        max-width: 800px; /* 뷰어 최대 너비 */
-        height: 100vh; /* 화면 높이에 맞춤 */
+        max-width: 800px;
+        height: 100%;
         display: flex;
         flex-direction: column;
-        position: relative; /* 하단 UI 겹치기를 위한 기준점 설정 */
+        position: relative;
+        margin: 0 auto;
     }
         
     /* 뷰어 영역 (이미지가 스크롤 되는 곳) */
     .viewer {
-        flex: 1; /* 남은 공간을 모두 차지 */
+        flex: 1;
+        width: 100%;
         overflow-y: auto;
-        background-color: #1a1a1a; /* 만화 몰입도를 위한 어두운 배경 */
+        background-color: #1a1a1a;
         position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding-bottom: 120px; /* 하단 UI에 가려지지 않도록 적절한 여백 부여 */
+        /* 하단 UI 높이(약 100px)만큼만 여백을 두어 마지막 이미지까지 가려지지 않게 처리 */
+        padding-bottom: 120px;
+        box-sizing: border-box;
         
         /* 스크롤바 숨기기 */
-        -ms-overflow-style: none; /* IE, Edge */
-        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
     
     .viewer::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, Opera */
+        display: none;
     }
         
-    /* 만화 페이지 크기 및 비율 설정 */
+    /* 만화 페이지 크기 및 유연한 높이 설정 */
     .manga-page {
         width: 100%;
-        flex-shrink: 0;   /* 비율 왜곡 방지 */
-        aspect-ratio: 1 / 1.414; /* 점프 만화 원고(B4) 비율 */
+        flex-shrink: 0;
         display: flex;
         justify-content: center;
         align-items: center;
         border-bottom: 2px solid #000;
         box-sizing: border-box;
-        /* 이미지 사이 간격 */
         margin-bottom: 20px;
     }
-    /* 마지막 이미지 아래 간격 처리 */
+
     .manga-page:last-child {
         margin-bottom: 0;
     }
@@ -70,11 +70,13 @@
     /* 실제 만화 이미지 스타일 */
     .manga-page img {
         width: 100%;
-        height: 100%;
-        object-fit: contain; /* 이미지가 잘리지 않고 비율 유지 */
+        height: auto;
+        display: block;
+        object-fit: contain;
         background-color: #fff;
     }
-    /* 하단 UI들을 묶어서 뷰어 위에 띄우는 컨테이너 */
+
+    /* 하단 UI 오버레이 컨테이너 */
     .bottom-ui {
         position: absolute;
         bottom: 0;
@@ -82,6 +84,7 @@
         width: 100%;
         z-index: 10;
     }
+
     /* 이동 단위 선택 바 */
     .mode-selector {
         width: 100%;
@@ -96,6 +99,7 @@
         color: #3f3f46;
         box-sizing: border-box;
     }
+
     .mode-selector label {
         display: flex;
         align-items: center;
@@ -103,13 +107,14 @@
         cursor: pointer;
         font-weight: 600;
     }
+
     .mode-selector input[type="radio"] {
         cursor: pointer;
         accent-color: #27272a;
         margin: 0;
     }
         
-    /* 뷰어 밖 하단 컨트롤 영역 */
+    /* 하단 버튼 영역 */
     .controls {
         width: 100%;
         padding: 10px 15px; 
@@ -123,7 +128,6 @@
         box-sizing: border-box;
     }
         
-    /* 좌/우 50% 크기의 표시 영역 */
     .controls .btn-img {
         flex: 1; 
         padding: 12px 0;
