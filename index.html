@@ -36,7 +36,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding-bottom: 70vh; /* ★ [수정] 마지막 이미지도 상단 기준점(1/3)까지 올라오도록 하단 여백 추가 */
+        padding-bottom: 70vh; /* 마지막 이미지 하단 여백 */
         
         /* 스크롤바 숨기기 */
         -ms-overflow-style: none; /* IE, Edge */
@@ -50,7 +50,6 @@
     /* 만화 페이지 크기 및 비율 설정 */
     .manga-page {
         width: 100%;
-        /* ★ [수정] max-height: 100%; 삭제 -> 화면/웹페이지 확대 시 세로 크기 고정이 풀려 이미지가 함께 확대됨 */
         flex-shrink: 0;   /* 비율 왜곡 방지 */
         aspect-ratio: 1 / 1.414; /* 점프 만화 원고(B4) 비율 */
         display: flex;
@@ -59,7 +58,7 @@
         border-bottom: 2px solid #000;
         box-sizing: border-box;
 
-        /* ★ [이미지 사이 간격 조절 위치] ★ */
+        /* 이미지 사이 간격 */
         margin-bottom: 20px;
     }
 
@@ -136,14 +135,16 @@
         // 화면 기준점 (뷰어 상단 3분의 1 지점)
         const targetViewerOffset = viewer.clientHeight / 3;
      
-        // 각 페이지의 상단 1/2, 하단 1/2 지점이 뷰어의 상단 1/3 지점에 오도록 하는 스크롤 위치 산출
+        // ★ [수정] 각 페이지를 상단(1/6), 중단(3/6), 하단(5/6) 3단계 지점으로 나눔
         const targetScrolls = [];
         pages.forEach((page) => {
-            const topHalfCenter = page.offsetTop + page.offsetHeight * 0.25;
-            const bottomHalfCenter = page.offsetTop + page.offsetHeight * 0.75;
+            const topThirdCenter = page.offsetTop + page.offsetHeight * (1 / 6);
+            const middleThirdCenter = page.offsetTop + page.offsetHeight * (3 / 6);
+            const bottomThirdCenter = page.offsetTop + page.offsetHeight * (5 / 6);
      
-            targetScrolls.push(Math.max(0, topHalfCenter - targetViewerOffset));
-            targetScrolls.push(Math.max(0, bottomHalfCenter - targetViewerOffset));
+            targetScrolls.push(Math.max(0, topThirdCenter - targetViewerOffset));
+            targetScrolls.push(Math.max(0, middleThirdCenter - targetViewerOffset));
+            targetScrolls.push(Math.max(0, bottomThirdCenter - targetViewerOffset));
         });
      
         // 현재 스크롤 위치와 가장 가까운 지점 찾기
@@ -159,7 +160,7 @@
             }
         });
      
-        // direction(-1: 이전 반쪽, 1: 다음 반쪽)을 적용해 대상 선택
+        // direction(-1: 이전, 1: 다음)을 적용해 대상 선택
         const targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
      
         // 목표 위치로 부드럽게 스크롤
