@@ -5,110 +5,138 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notion Manga Viewer</title>
 <style>
-    /* 전체 화면 여백 제거 및 배경 설정 (노션 임베드 시 꽉 차게) */
-    body {
+    /* 1. 노션 임베드 영역 전체 활용 및 스크롤 방지 */
+    html, body {
+        width: 100%;
+        height: 100%;
         margin: 0;
         padding: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        height: 100vh;
-        background-color: #ffffff;
-        font-family: 'Malgun Gothic', sans-serif;
-        user-select: none; /* 연속 클릭 시 텍스트 드래그 방지 */
+        background-color: #1a1a1a;
+        font-family: 'Malgun Gothic', -apple-system, sans-serif;
+        user-select: none;
+        overflow: hidden;
     }
-      
-    /* 전체 컨테이너 */
+        
+    /* 2. 전체 레이아웃 */
     .viewer-wrapper {
         width: 100%;
-        max-width: 800px; /* 뷰어 최대 너비 */
         height: 100%;
+        max-width: 800px;
+        margin: 0 auto;
         display: flex;
         flex-direction: column;
+        box-sizing: border-box;
+        background-color: #1a1a1a;
     }
-      
-    /* 뷰어 영역 (이미지가 스크롤 되는 곳) */
+        
+    /* 3. 만화 뷰어 영역 */
     .viewer {
-        flex-grow: 1; /* 남은 공간을 모두 차지 */
+        flex: 1;
+        min-height: 0;
+        width: 100%;
         overflow-y: auto;
-        background-color: #1a1a1a; /* 만화 몰입도를 위한 어두운 배경 */
+        overflow-x: hidden;
         position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        background-color: #1a1a1a;
+        box-sizing: border-box;
         
         /* 스크롤바 숨기기 */
-        -ms-overflow-style: none; /* IE, Edge */
-        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
     
     .viewer::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, Opera */
+        display: none;
     }
-      
-    /* 만화 페이지 크기 및 비율 설정 */
+        
+    /* 4. 만화 페이지: 뷰어 화면 높이(100%)에 맞춤 */
     .manga-page {
         width: 100%;
-        max-height: 100%; /* 세로면이 뷰어를 초과하지 않도록 자동 축소 */
-        flex-shrink: 0;   /* 비율 왜곡 방지 */
-        aspect-ratio: 1 / 1.414; /* 점프 만화 원고(B4) 비율 */
+        height: 100%; /* 뷰어 영역 1페이지 전체 차지 */
+        flex: 0 0 100%;
         display: flex;
         justify-content: center;
         align-items: center;
-        border-bottom: 2px solid #000;
         box-sizing: border-box;
-
-        /* ★★★ [이미지 사이 간격 조절 위치] ★★★ */
-        /* 아래 20px 숫자를 원하시는 크기로 변경하세요 (예: 10px, 30px, 50px 등) */
-        margin-bottom: 20px;
     }
-
-    /* 마지막 이미지 아래에는 여백이 남지 않도록 처리 */
-    .manga-page:last-child {
-        margin-bottom: 0;
-    }
-      
-    /* 실제 만화 이미지 스타일 */
+        
+    /* 5. 이미지: 가로/세로 중 먼저 닿는 면에 맞추어 확대/축소 (전체 이미지 노출) */
     .manga-page img {
         width: 100%;
         height: 100%;
-        object-fit: contain; /* 이미지가 잘리지 않고 비율 유지 */
-        background-color: #fff;
+        object-fit: contain; /* 잘림 없이 한 화면에 전체 표시 */
+        display: block;
     }
-      
-    /* 뷰어 밖 하단 컨트롤 영역 (가로 2분할 구조) */
+
+    /* 6. 하단 UI 영역 */
+    .bottom-ui {
+        flex-shrink: 0;
+        width: 100%;
+        background-color: #f4f4f5;
+        border-top: 1px solid #d4d4d8;
+        z-index: 10;
+    }
+
+    .mode-selector {
+        width: 100%;
+        padding: 6px 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        background-color: #e4e4e7;
+        border-bottom: 1px solid #d4d4d8;
+        font-size: 12px;
+        color: #3f3f46;
+        box-sizing: border-box;
+    }
+
+    .mode-selector label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .mode-selector input[type="radio"] {
+        cursor: pointer;
+        accent-color: #27272a;
+        margin: 0;
+    }
+        
     .controls {
         width: 100%;
-        padding: 10px 15px; 
+        padding: 8px 15px; 
         display: flex;
-        flex-direction: row; /* 좌/우 가로 배치 */
+        flex-direction: row; 
         justify-content: center;
         align-items: center;
         gap: 10px; 
-        background-color: #f4f4f5;
-        border-top: 1px solid #e4e4e7;
         box-sizing: border-box;
     }
-      
-    /* 좌/우 50% 크기의 표시 영역 */
+        
     .controls .btn-img {
-        flex: 1; /* 좌우 1:1 동일 비율 배치 */
-        padding: 12px 0;
-        font-size: 22px;
+        flex: 1; 
+        padding: 10px 0;
+        font-size: 20px;
         font-weight: bold;
         color: #fff;
         background-color: #27272a;
         border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         text-align: center;
         box-sizing: border-box;
+        cursor: pointer;
+    }
+
+    .controls .btn-img:active {
+        background-color: #52525b;
     }
 </style>
 </head>
 <body>
-      
+        
 <div class="viewer-wrapper">
-    <!-- 만화 뷰어 영역 -->
     <div class="viewer" id="mangaViewer">
         <div class="manga-page">
             <img src="1.png" alt="페이지 1">
@@ -121,69 +149,72 @@
         </div>
     </div>
     
-    <!-- 스케치 모양의 하단 가로 배치 컨트롤 표시 영역 -->
-    <div class="controls">
-        <div class="btn-img">∧</div>
-        <div class="btn-img">∨</div>
+    <div class="bottom-ui">
+        <div class="mode-selector">
+            <label><input type="radio" name="scrollStep" value="1"> 1 페이지 단위</label>
+            <label><input type="radio" name="scrollStep" value="2"> 1/2 단위</label>
+            <label><input type="radio" name="scrollStep" value="3" checked> 1/3 단위</label>
+        </div>
+        <div class="controls">
+            <div class="btn-img" onclick="scrollManga(-1)">∧</div>
+            <div class="btn-img" onclick="scrollManga(1)">∨</div>
+        </div>
     </div>
 </div>
-      
+        
 <script>
     function scrollManga(direction) {
         const viewer = document.getElementById('mangaViewer');
         const pages = viewer.querySelectorAll('.manga-page');
+        if (!pages.length) return;
         
-        // ★★★ [화면 기준점 수정 위치] ★★★
-        // 기존 viewer.clientHeight / 2 (중앙) 에서 viewer.clientHeight / 3 (상단 3분의 1) 로 변경
-        const targetViewerOffset = viewer.clientHeight / 3;
-     
-        // 각 페이지의 상단 1/2, 하단 1/2 지점이 뷰어의 상단 1/3 지점에 오도록 하는 스크롤 위치 산출
+        const selectedMode = document.querySelector('input[name="scrollStep"]:checked')?.value || '3';
+        const steps = parseInt(selectedMode, 10);
         const targetScrolls = [];
+        
         pages.forEach((page) => {
-            const topHalfCenter = page.offsetTop + page.offsetHeight * 0.25;
-            const bottomHalfCenter = page.offsetTop + page.offsetHeight * 0.75;
-     
-            targetScrolls.push(Math.max(0, topHalfCenter - targetViewerOffset));
-            targetScrolls.push(Math.max(0, bottomHalfCenter - targetViewerOffset));
+            const pTop = page.offsetTop;
+            const pHeight = page.offsetHeight;
+            
+            for (let i = 0; i < steps; i++) {
+                targetScrolls.push(pTop + (pHeight * (i / steps)));
+            }
         });
-     
-        // 현재 스크롤 위치와 가장 가까운 지점 찾기
-        const currentScroll = viewer.scrollTop;
+
+        const maxScroll = viewer.scrollHeight - viewer.clientHeight;
+        targetScrolls.push(maxScroll);
+
+        const sortedTargets = [...new Set(targetScrolls.map(v => Math.round(v)))].sort((a, b) => a - b);
+        const currentScroll = Math.round(viewer.scrollTop);
+
         let closestIndex = 0;
         let minDiff = Infinity;
-     
-        targetScrolls.forEach((target, index) => {
+        
+        sortedTargets.forEach((target, index) => {
             const diff = Math.abs(target - currentScroll);
             if (diff < minDiff) {
                 minDiff = diff;
                 closestIndex = index;
             }
         });
-     
-        // direction(-1: 이전 반쪽, 1: 다음 반쪽)을 적용해 대상 선택
-        const targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
-     
-        // 목표 위치로 부드럽게 스크롤
-        viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
+
+        const targetIndex = Math.max(0, Math.min(closestIndex + direction, sortedTargets.length - 1));
+        viewer.scrollTo({ top: sortedTargets[targetIndex], behavior: 'smooth' });
     }
      
-    // 화면 터치/클릭 위치 판별 (우측 하단 1/4 = 다음, 그 외 = 이전)
     window.addEventListener('click', (e) => {
-        if (e.target.closest('.controls')) {
-            return;
-        }
+        if (e.target.closest('.bottom-ui')) return;
      
         const isRightHalf = e.clientX > window.innerWidth / 2;
         const isBottomHalf = e.clientY > window.innerHeight / 2;
      
         if (isRightHalf && isBottomHalf) {
-            scrollManga(1);  // 우측 하단 1/4: 다음 (아래로)
+            scrollManga(1); 
         } else {
-            scrollManga(-1); // 그 외 전체 영역: 이전 (위로)
+            scrollManga(-1);
         }
     });
 
-    // 방향키(상/하/좌/우) 입력 처리
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
             e.preventDefault();
@@ -194,6 +225,6 @@
         }
     });
 </script>
-      
+        
 </body>
 </html>
