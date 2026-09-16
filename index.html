@@ -15,13 +15,13 @@
         height: 100vh;
         background-color: #ffffff;
         font-family: 'Malgun Gothic', sans-serif;
-        user-select: none; /* [추가] 연속 클릭 시 텍스트 드래그 방지 */
+        user-select: none; /* 연속 클릭 시 텍스트 드래그 방지 */
     }
       
     /* 전체 컨테이너 */
     .viewer-wrapper {
         width: 100%;
-        max-width: 800px; /* 뷰어 최대 너비 (노션 폭에 맞춰 조절 가능) */
+        max-width: 800px; /* 뷰어 최대 너비 */
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -33,11 +33,11 @@
         overflow-y: auto;
         background-color: #1a1a1a; /* 만화 몰입도를 위한 어두운 배경 */
         position: relative;
-        display: flex; /* 내부 이미지를 중앙 및 뷰어 크기에 맞춤 */
+        display: flex;
         flex-direction: column;
         align-items: center;
         
-        /* 스크롤바 숨기기 (더 깔끔한 UI) */
+        /* 스크롤바 숨기기 */
         -ms-overflow-style: none; /* IE, Edge */
         scrollbar-width: none; /* Firefox */
     }
@@ -51,8 +51,7 @@
         width: 100%;
         max-height: 100%; /* 세로면이 뷰어를 초과하지 않도록 자동 축소 */
         flex-shrink: 0;   /* 비율 왜곡 방지 */
-        /* 점프 만화 원고(B4) 비율: 약 1 : 1.414 */
-        aspect-ratio: 1 / 1.414; 
+        aspect-ratio: 1 / 1.414; /* 점프 만화 원고(B4) 비율 */
         display: flex;
         justify-content: center;
         align-items: center;
@@ -68,24 +67,26 @@
         background-color: #fff;
     }
       
-    /* 뷰어 밖 하단 컨트롤 표시 영역 (버튼 동작 없는 이미지 형태) */
+    /* [수정] 뷰어 밖 하단 컨트롤 영역 (가로 2분할 구조) */
     .controls {
-        padding: 15px 0; 
+        width: 100%;
+        padding: 10px 15px; 
         display: flex;
-        flex-direction: column; 
+        flex-direction: row; /* 좌/우 가로 배치 */
         justify-content: center;
         align-items: center;
         gap: 10px; 
         background-color: #f4f4f5;
         border-top: 1px solid #e4e4e7;
-        pointer-events: none; /* [추가] 터치/클릭 동작 차단 및 클릭 이벤트 투과 */
+        pointer-events: none; /* 클릭 이벤트 투과 (단순 시각용) */
+        box-sizing: border-box;
     }
       
-    /* [수정] 버튼 대신 단순 이미지/아이콘 표시 스타일 */
+    /* [수정] 좌/우 50% 크기의 표시 영역 */
     .controls .btn-img {
-        width: 200px; 
-        padding: 12px 20px;
-        font-size: 16px;
+        flex: 1; /* 좌우 1:1 동일 비율 배치 */
+        padding: 12px 0;
+        font-size: 22px;
         font-weight: bold;
         color: #fff;
         background-color: #27272a;
@@ -112,10 +113,10 @@
         </div>
     </div>
     
-    <!-- 하단 상하 표시 이미지 영역 (단순 시각용) -->
+    <!-- [수정] 스케치 모양의 하단 가로 배치 컨트롤 표시 영역 -->
     <div class="controls">
-        <div class="btn-img">▲ 위로</div>
-        <div class="btn-img">▼ 아래로</div>
+        <div class="btn-img">∧</div>
+        <div class="btn-img">∨</div>
     </div>
 </div>
       
@@ -148,22 +149,22 @@
             }
         });
 
-        // direction(-1: 이전 반쪽, 1: 다음 반쪽)을 적용해 다음 대상 선택
+        // direction(-1: 이전 반쪽, 1: 다음 반쪽)을 적용해 대상 선택
         const targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
 
         // 목표 위치로 부드럽게 스크롤
         viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
     }
 
-    // [추가] 화면 터치/클릭 위치 판별 (우측 하단 1/4 = 다음, 그 외 = 이전)
+    // 화면 터치/클릭 위치 판별 (우측 하단 1/4 = 다음, 그 외 = 이전)
     window.addEventListener('click', (e) => {
         const isRightHalf = e.clientX > window.innerWidth / 2;
         const isBottomHalf = e.clientY > window.innerHeight / 2;
 
         if (isRightHalf && isBottomHalf) {
-            scrollManga(1);  // 우측 하단 1/4: 아래로 (다음)
+            scrollManga(1);  // 우측 하단 1/4: 다음 (아래로)
         } else {
-            scrollManga(-1); // 그 외 전체: 위로 (이전)
+            scrollManga(-1); // 그 외 전체 영역: 이전 (위로)
         }
     });
 </script>
