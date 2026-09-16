@@ -57,6 +57,15 @@
         align-items: center;
         border-bottom: 2px solid #000;
         box-sizing: border-box;
+
+        /* ★★★ [이미지 사이 간격 조절 위치] ★★★ */
+        /* 아래 20px 숫자를 원하시는 크기로 변경하세요 (예: 10px, 30px, 50px 등) */
+        margin-bottom: 20px;
+    }
+
+    /* 마지막 이미지 아래에는 여백이 남지 않도록 처리 */
+    .manga-page:last-child {
+        margin-bottom: 0;
     }
       
     /* 실제 만화 이미지 스타일 */
@@ -78,7 +87,6 @@
         gap: 10px; 
         background-color: #f4f4f5;
         border-top: 1px solid #e4e4e7;
-        /* pointer-events: none; (삭제됨: 이 영역 클릭 이벤트를 감지하여 무시하기 위함) */
         box-sizing: border-box;
     }
       
@@ -158,7 +166,6 @@
      
     // 화면 터치/클릭 위치 판별 (우측 하단 1/4 = 다음, 그 외 = 이전)
     window.addEventListener('click', (e) => {
-        // [추가] 클릭한 위치가 하단 컨트롤 구역(.controls) 내부인 경우 아무 동작도 하지 않음
         if (e.target.closest('.controls')) {
             return;
         }
@@ -176,11 +183,11 @@
     // 방향키(상/하/좌/우) 입력 처리
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-            e.preventDefault(); // 기본 스크롤 방지
-            scrollManga(1);     // 다음 반쪽 위치로 맞춤 이동
+            e.preventDefault();
+            scrollManga(1);
         } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-            e.preventDefault(); // 기본 스크롤 방지
-            scrollManga(-1);    // 이전 반쪽 위치로 맞춤 이동
+            e.preventDefault();
+            scrollManga(-1);
         }
     });
 </script>
