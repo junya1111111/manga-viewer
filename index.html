@@ -5,35 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notion Manga Viewer</title>
 <style>
-    /* 전체 화면 여백 제거 및 노션 임베드 최적화 */
-    html, body {
+    /* 전체 화면 여백 제거 및 배경 설정 (노션 임베드 시 꽉 차게) */
+    body {
         margin: 0;
         padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden; /* 전체 창 스크롤 방지 */
-        background-color: #ffffff;
-        font-family: 'Malgun Gothic', -apple-system, sans-serif;
-    }
-
-    /* 전체 컨테이너 (100% 높이 차지) */
-    .viewer-wrapper {
-        width: 100%;
-        height: 100vh;
-        max-width: 800px; /* PC 화면 기준 최대 너비 제한 */
-        margin: 0 auto;
         display: flex;
         flex-direction: column;
-        box-sizing: border-box;
+        align-items: center;
+        height: 100vh;
+        background-color: #ffffff;
+        font-family: 'Malgun Gothic', sans-serif;
     }
 
-    /* 뷰어 영역 (이미지가 스크롤되는 곳) */
+    /* 전체 컨테이너 */
+    .viewer-wrapper {
+        width: 100%;
+        max-width: 800px; /* 뷰어 최대 너비 (노션 폭에 맞춰 조절 가능) */
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* 뷰어 영역 (이미지가 스크롤 되는 곳) */
     .viewer {
-        flex: 1; /* 남은 상단 공간을 모두 차지 */
+        flex-grow: 1; /* 남은 공간을 모두 차지 */
         overflow-y: auto;
-        background-color: #121212; /* 만화 몰입감을 위한 어두운 배경 */
+        background-color: #1a1a1a; /* 만화 몰입도를 위한 어두운 배경 */
         
-        /* 스크롤바 숨기기 (필요시 제거 가능) */
+        /* 스크롤바 숨기기 (더 깔끔한 UI) */
         -ms-overflow-style: none; /* IE, Edge */
         scrollbar-width: none; /* Firefox */
     }
@@ -42,16 +41,15 @@
         display: none; /* Chrome, Safari, Opera */
     }
 
-    /* 만화 페이지 프레임 (점프 원고 B4 비율: 1 : 1.414) */
+    /* 만화 페이지 크기 및 비율 설정 */
     .manga-page {
         width: 100%;
-        aspect-ratio: 1 / 1.414; /* 주간 소년 점프 원고 비율 */
+        /* 점프 만화 원고(B4) 비율: 약 1 : 1.414 */
+        aspect-ratio: 1 / 1.414; 
         display: flex;
         justify-content: center;
         align-items: center;
-        background-color: #000;
-        /* 페이지 구분선 (필요 없으시면 border-bottom 삭제 가능) */
-        border-bottom: 2px solid #222; 
+        border-bottom: 2px solid #000;
         box-sizing: border-box;
     }
 
@@ -59,44 +57,38 @@
     .manga-page img {
         width: 100%;
         height: 100%;
-        object-fit: contain; /* 이미지가 잘리지 않고 비율에 맞게 쏙 들어가도록 설정 */
-        display: block;
+        object-fit: contain; /* 이미지가 잘리지 않고 비율 유지 */
+        background-color: #fff;
     }
 
-    /* 뷰어 밖 하단 컨트롤 버튼 영역 (세로 배치) */
+    /* 뷰어 밖 하단 컨트롤 버튼 영역 (세로 정렬로 수정됨) */
     .controls {
+        padding: 15px 0; /* 버튼이 위아래로 들어가므로 고정 height 대신 padding 사용 */
         display: flex;
         flex-direction: column; /* 버튼을 세로로 나열 */
-        align-items: center;
         justify-content: center;
-        gap: 8px; /* 버튼 사이 간격 */
-        padding: 12px 0;
+        align-items: center;
+        gap: 10px; /* 버튼 사이 간격 */
         background-color: #f4f4f5;
         border-top: 1px solid #e4e4e7;
-        flex-shrink: 0; /* 버튼 영역 높이 고정 */
     }
 
-    /* 버튼 스타일 */
     .controls button {
-        width: 140px;
-        padding: 10px 0;
-        font-size: 14px;
+        width: 200px; /* 세로 정렬 시 버튼 크기를 통일하면 깔끔함 */
+        padding: 12px 20px;
+        font-size: 16px;
         font-weight: bold;
-        color: #ffffff;
+        color: #fff;
         background-color: #27272a;
         border: none;
-        border-radius: 6px;
+        border-radius: 8px;
         cursor: pointer;
-        transition: background-color 0.2s, transform 0.1s;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.2s;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
 
     .controls button:hover {
-        background-color: #3f3f46;
-    }
-
-    .controls button:active {
-        transform: scale(0.98); /* 클릭 시 살짝 눌리는 효과 */
+        background-color: #52525b;
     }
 </style>
 </head>
@@ -106,21 +98,21 @@
     <!-- 만화 뷰어 영역 -->
     <div class="viewer" id="mangaViewer">
         <!-- 
-            [이미지 교체 방법]
-            src="..." 부분에 올려두신 실제 이미지 URL 경로를 넣으시면 됩니다.
+            이곳에 만화 이미지를 넣으시면 됩니다. 
+            src="이미지_주소" 부분에 실제 웹에 올라간 이미지 링크를 넣으세요.
         -->
         <div class="manga-page">
-            <img src="https://via.placeholder.com/800x1131/eeeeee/333333?text=Page+1+(Jump+Size)" alt="1페이지">
+           <img src="01.jpg" alt="1페이지">
         </div>
         <div class="manga-page">
-            <img src="https://via.placeholder.com/800x1131/dddddd/333333?text=Page+2+(Jump+Size)" alt="2페이지">
+            <img src="https://via.placeholder.com/800x1131/dddddd/333333?text=Page+2" alt="페이지 2">
         </div>
         <div class="manga-page">
-            <img src="https://via.placeholder.com/800x1131/cccccc/333333?text=Page+3+(Jump+Size)" alt="3페이지">
+            <img src="https://via.placeholder.com/800x1131/cccccc/333333?text=Page+3" alt="페이지 3">
         </div>
     </div>
     
-    <!-- 하단 세로 나열 상하 스크롤 버튼 -->
+    <!-- 하단 상하 스크롤 버튼 (세로 나열) -->
     <div class="controls">
         <button onclick="scrollManga(-1)">▲ 위로</button>
         <button onclick="scrollManga(1)">▼ 아래로</button>
@@ -130,14 +122,13 @@
 <script>
     function scrollManga(direction) {
         const viewer = document.getElementById('mangaViewer');
-        
-        // 버튼을 누르면 현재 보이고 있는 뷰어 높이의 90%만큼 이동 (한 페이지씩 넘기듯 스크롤)
-        const scrollAmount = viewer.clientHeight * 0.9; 
+        // 한 번 클릭 시 뷰어 높이의 80%만큼 부드럽게 스크롤 (읽기 맥락 유지)
+        const scrollAmount = viewer.clientHeight * 0.8; 
         
         viewer.scrollBy({
             top: direction * scrollAmount,
             left: 0,
-            behavior: 'smooth' // 부드러운 스크롤 효과
+            behavior: 'smooth'
         });
     }
 </script>
