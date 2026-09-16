@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notion Manga Viewer</title>
 <style>
-    /* 1. 노션 iframe 높이에 완벽히 연동되도록 100% 설정 (vh 사용 금지) */
+    /* 1. 노션 임베드 영역 전체 활용 및 스크롤 방지 */
     html, body {
         width: 100%;
         height: 100%;
@@ -17,7 +17,7 @@
         overflow: hidden;
     }
         
-    /* 2. 전체 레이아웃 (노션 블록 높이에 맞춰 유연하게 확장) */
+    /* 2. 전체 레이아웃 */
     .viewer-wrapper {
         width: 100%;
         height: 100%;
@@ -29,14 +29,14 @@
         background-color: #1a1a1a;
     }
         
-    /* 3. 만화 뷰어 영역 (min-height: 0으로 노션 내부 팽창 방지 및 내부 스크롤 보장) */
+    /* 3. 만화 뷰어 영역 */
     .viewer {
         flex: 1;
-        min-height: 0; /* 노션 iframe Flexbox 버그 방지 필수 설정 */
+        min-height: 0;
         width: 100%;
         overflow-y: auto;
         overflow-x: hidden;
-        position: relative; /* JS 위치 계산 기준점 */
+        position: relative;
         background-color: #1a1a1a;
         box-sizing: border-box;
         
@@ -49,27 +49,26 @@
         display: none;
     }
         
-    /* 만화 페이지 */
+    /* 4. 만화 페이지: 뷰어 화면 높이(100%)에 맞춤 */
     .manga-page {
         width: 100%;
-        display: block;
+        height: 100%; /* 뷰어 영역 1페이지 전체 차지 */
+        flex: 0 0 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         box-sizing: border-box;
-        margin-bottom: 20px;
-    }
-
-    .manga-page:last-child {
-        margin-bottom: 0;
     }
         
-    /* 원본 비율 유지하면서 전체 너비에 맞춤 */
+    /* 5. 이미지: 가로/세로 중 먼저 닿는 면에 맞추어 확대/축소 (전체 이미지 노출) */
     .manga-page img {
         width: 100%;
-        height: auto;
+        height: 100%;
+        object-fit: contain; /* 잘림 없이 한 화면에 전체 표시 */
         display: block;
-        background-color: #fff;
     }
 
-    /* 4. 하단 UI 영역 (뷰어 하단에 안전하게 고정되어 절대 이미지를 가리지 않음) */
+    /* 6. 하단 UI 영역 */
     .bottom-ui {
         flex-shrink: 0;
         width: 100%;
@@ -152,6 +151,7 @@
     
     <div class="bottom-ui">
         <div class="mode-selector">
+            <label><input type="radio" name="scrollStep" value="1"> 1 페이지 단위</label>
             <label><input type="radio" name="scrollStep" value="2"> 1/2 단위</label>
             <label><input type="radio" name="scrollStep" value="3" checked> 1/3 단위</label>
         </div>
@@ -172,13 +172,8 @@
         const steps = parseInt(selectedMode, 10);
         const targetScrolls = [];
         
-        // 노션 iframe 내부에서의 절대적 위치 계산 (getBoundingClientRect 활용)
-        const viewerTop = viewer.getBoundingClientRect().top;
-
         pages.forEach((page) => {
-            const pageRect = page.getBoundingClientRect();
-            // 현재 스크롤 위치를 반영한 실제 이미지 Absolute Y값 계산
-            const pTop = pageRect.top - viewerTop + viewer.scrollTop;
+            const pTop = page.offsetTop;
             const pHeight = page.offsetHeight;
             
             for (let i = 0; i < steps; i++) {
@@ -186,7 +181,6 @@
             }
         });
 
-        // 맨 마지막 컷 하단까지 완전히 내려갈 수 있도록 최하단 좌표 추가
         const maxScroll = viewer.scrollHeight - viewer.clientHeight;
         targetScrolls.push(maxScroll);
 
