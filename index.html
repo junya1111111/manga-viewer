@@ -40,7 +40,7 @@
         position: relative;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        /* align-items: center 제거 -> 확대 시 좌측 잘림 현상 방지 */
         padding-bottom: 100vh; /* 하단 스크롤 여백 */
         
         /* 스크롤바 숨기기 */
@@ -54,7 +54,10 @@
         
     /* 만화 페이지 크기 및 비율 설정 */
     .manga-page {
-        width: calc(100% * var(--zoom-scale, 1)); /* 일관된 확대 비율 적용 */
+        width: calc(100% * var(--zoom-scale, 1)); /* 전체 일관 확대 비율 */
+        max-width: none;
+        margin-left: auto;
+        margin-right: auto; /* 중앙 정렬 유지 */
         flex-shrink: 0;   /* 비율 왜곡 방지 */
         aspect-ratio: 1 / 1.414; /* 점프 만화 원고(B4) 비율 */
         display: flex;
@@ -64,7 +67,6 @@
         box-sizing: border-box;
         /* 이미지 사이 간격 */
         margin-bottom: 20px;
-        transition: width 0.05s ease-out;
     }
     /* 마지막 이미지 아래 간격 처리 */
     .manga-page:last-child {
@@ -203,7 +205,7 @@
         viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
     }
 
-    // 전절 전체 뷰어 일관 확대 (핀치 줌 / 더블 탭)
+    // 일괄 유지형 전체 확대/축소 제어 (핀치 줌 & 더블탭)
     const viewer = document.getElementById('mangaViewer');
     let zoomScale = 1;
     let startDist = 0;
@@ -211,8 +213,8 @@
     let isPinching = false;
     let lastTapTime = 0;
 
-    function setZoom(scale) {
-        zoomScale = Math.min(Math.max(1, scale), 3); // 1배~3배 제한
+    function applyZoom(scale) {
+        zoomScale = Math.min(Math.max(1, scale), 3); // 최소 1배, 최대 3배
         viewer.style.setProperty('--zoom-scale', zoomScale);
     }
 
@@ -234,7 +236,7 @@
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
             );
-            setZoom(initialZoomScale * (currentDist / startDist));
+            applyZoom(initialZoomScale * (currentDist / startDist));
         }
     }, { passive: true });
 
@@ -243,11 +245,11 @@
             setTimeout(() => { isPinching = false; }, 200);
         }
 
-        // 더블 탭으로 확대/축소 토글
+        // 더블 탭 토글 (1배 <-> 2배)
         if (e.touches.length === 0 && e.changedTouches.length === 1) {
             const now = Date.now();
             if (now - lastTapTime < 300) {
-                setZoom(zoomScale > 1.2 ? 1 : 2);
+                applyZoom(zoomScale > 1.2 ? 1 : 2);
             }
             lastTapTime = now;
         }
