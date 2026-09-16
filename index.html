@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0">
 <title>Notion Manga Viewer</title>
 <style>
     /* 전체 화면 여백 제거 및 배경 설정 (노션 임베드 시 꽉 차게) */
@@ -75,6 +75,9 @@
         height: 100%;
         object-fit: contain; /* 이미지가 잘리지 않고 비율 유지 */
         background-color: #fff;
+        touch-action: pan-y;
+        position: relative;
+        will-change: transform;
     }
     /* 하단 UI들을 묶어서 뷰어 위에 띄우는 컨테이너 */
     .bottom-ui {
@@ -154,13 +157,6 @@
         <div class="manga-page">
             <img src="3.png" alt="페이지 3">
         </div>
-         <div class="manga-page">
-            <img src="4.png" alt="페이지 1">
-        </div>
-        <div class="manga-page">
-            <img src="5.png" alt="페이지 2">
-        </div>
-       
     </div>
     
     <!-- 하단 컨트롤 UI -->
@@ -206,9 +202,99 @@
         const targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
         viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
     }
-     
+
+    // 모바일 터치 확대(Pinch Zoom), 이동(Pan), 더블탭 터치 스크립트
+    let scale = 1, pointX = 0, pointY = 0;
+    let startX = 0, startY = 0, initialDist = 0, startScale = 1;
+    let targetImg = null, isTouchHandled = false, lastTap = 0;
+
+    const viewer = document.getElementById('mangaViewer');
+
+    function updateTransform(img) {
+        if (!img) return;
+        if (scale <= 1) {
+            scale = 1; pointX = 0; pointY = 0;
+            img.style.transform = '';
+            img.style.zIndex = '';
+        } else {
+            img.style.zIndex = '5';
+            img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+        }
+    }
+
+    viewer.addEventListener('touchstart', (e) => {
+        const img = e.target.closest('.manga-page img');
+        if (!img) return;
+
+        if (targetImg && targetImg !== img && scale > 1) {
+            scale = 1;
+            updateTransform(targetImg);
+        }
+        targetImg = img;
+
+        if (e.touches.length === 2) {
+            isTouchHandled = true;
+            initialDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            startScale = scale;
+        } else if (e.touches.length === 1 && scale > 1) {
+            startX = e.touches[0].clientX - pointX;
+            startY = e.touches[0].clientY - pointY;
+        }
+    }, { passive: true });
+
+    viewer.addEventListener('touchmove', (e) => {
+        if (!targetImg) return;
+
+        if (e.touches.length === 2) {
+            isTouchHandled = true;
+            if (e.cancelable) e.preventDefault();
+            const dist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            if (initialDist > 0) {
+                scale = Math.min(Math.max(1, startScale * (dist / initialDist)), 4);
+                updateTransform(targetImg);
+            }
+        } else if (e.touches.length === 1 && scale > 1) {
+            isTouchHandled = true;
+            if (e.cancelable) e.preventDefault();
+            pointX = e.touches[0].clientX - startX;
+            pointY = e.touches[0].clientY - startY;
+            updateTransform(targetImg);
+        }
+    }, { passive: false });
+
+    viewer.addEventListener('touchend', (e) => {
+        const now = Date.now();
+        const img = e.target.closest('.manga-page img');
+
+        if (img && now - lastTap < 300) {
+            isTouchHandled = true;
+            if (scale > 1) {
+                scale = 1;
+            } else {
+                scale = 2.5;
+                targetImg = img;
+            }
+            updateTransform(img);
+        }
+        lastTap = now;
+
+        if (e.touches.length < 2) {
+            if (scale < 1.05) {
+                scale = 1;
+                updateTransform(targetImg);
+            }
+            setTimeout(() => { isTouchHandled = false; }, 300);
+        }
+    });
+
     window.addEventListener('click', (e) => {
-        if (e.target.closest('.controls') || e.target.closest('.mode-selector')) {
+        if (e.target.closest('.controls') || e.target.closest('.mode-selector') || isTouchHandled || scale > 1) {
             return;
         }
      
@@ -221,6 +307,7 @@
             scrollManga(-1);
         }
     });
+
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
             e.preventDefault();
