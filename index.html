@@ -16,7 +16,7 @@
         background-color: #ffffff;
         font-family: 'Malgun Gothic', sans-serif;
     }
-     
+      
     /* 전체 컨테이너 */
     .viewer-wrapper {
         width: 100%;
@@ -25,13 +25,16 @@
         display: flex;
         flex-direction: column;
     }
-     
+      
     /* 뷰어 영역 (이미지가 스크롤 되는 곳) */
     .viewer {
         flex-grow: 1; /* 남은 공간을 모두 차지 */
         overflow-y: auto;
         background-color: #1a1a1a; /* 만화 몰입도를 위한 어두운 배경 */
-        scroll-snap-type: y mandatory; /* [추가] 스크롤 시 중앙으로 정렬 스냅 지정 */
+        position: relative;
+        display: flex; /* [추가] 내부 이미지를 중앙 및 뷰어 크기에 맞춤 */
+        flex-direction: column;
+        align-items: center;
         
         /* 스크롤바 숨기기 (더 깔끔한 UI) */
         -ms-overflow-style: none; /* IE, Edge */
@@ -41,10 +44,12 @@
     .viewer::-webkit-scrollbar {
         display: none; /* Chrome, Safari, Opera */
     }
-     
+      
     /* 만화 페이지 크기 및 비율 설정 */
     .manga-page {
         width: 100%;
+        max-height: 100%; /* [추가] 세로면이 뷰어를 초과하지 않도록 자동 축소 */
+        flex-shrink: 0;   /* [추가] 비율 왜곡 방지 */
         /* 점프 만화 원고(B4) 비율: 약 1 : 1.414 */
         aspect-ratio: 1 / 1.414; 
         display: flex;
@@ -52,9 +57,8 @@
         align-items: center;
         border-bottom: 2px solid #000;
         box-sizing: border-box;
-        scroll-snap-align: center; /* [추가] 이미지 중앙이 화면 중앙에 오도록 맞춤 */
     }
-     
+      
     /* 실제 만화 이미지 스타일 */
     .manga-page img {
         width: 100%;
@@ -62,7 +66,7 @@
         object-fit: contain; /* 이미지가 잘리지 않고 비율 유지 */
         background-color: #fff;
     }
-     
+      
     /* 뷰어 밖 하단 컨트롤 버튼 영역 (세로 정렬로 수정됨) */
     .controls {
         padding: 15px 0; /* 버튼이 위아래로 들어가므로 고정 height 대신 padding 사용 */
@@ -74,7 +78,7 @@
         background-color: #f4f4f5;
         border-top: 1px solid #e4e4e7;
     }
-     
+      
     .controls button {
         width: 200px; /* 세로 정렬 시 버튼 크기를 통일하면 깔끔함 */
         padding: 12px 20px;
@@ -88,14 +92,14 @@
         transition: background-color 0.2s;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-     
+      
     .controls button:hover {
         background-color: #52525b;
     }
 </style>
 </head>
 <body>
-     
+      
 <div class="viewer-wrapper">
     <!-- 만화 뷰어 영역 -->
     <div class="viewer" id="mangaViewer">
@@ -116,33 +120,43 @@
         <button onclick="scrollManga(1)">▼ 아래로</button>
     </div>
 </div>
-     
+      
 <script>
     function scrollManga(direction) {
         const viewer = document.getElementById('mangaViewer');
         const pages = viewer.querySelectorAll('.manga-page');
-        const viewerCenter = viewer.scrollTop + viewer.clientHeight / 2;
+        const halfViewerHeight = viewer.clientHeight / 2;
 
-        // 현재 화면 중앙에서 가장 가까운 페이지 탐색
+        // 각 페이지의 상단 1/2, 하단 1/2 지점이 뷰어 중앙에 오도록 하는 스크롤 위치 산출
+        const targetScrolls = [];
+        pages.forEach((page) => {
+            const topHalfCenter = page.offsetTop + page.offsetHeight * 0.25;
+            const bottomHalfCenter = page.offsetTop + page.offsetHeight * 0.75;
+
+            targetScrolls.push(Math.max(0, topHalfCenter - halfViewerHeight));
+            targetScrolls.push(Math.max(0, bottomHalfCenter - halfViewerHeight));
+        });
+
+        // 현재 스크롤 위치와 가장 가까운 지점 찾기
+        const currentScroll = viewer.scrollTop;
         let closestIndex = 0;
         let minDiff = Infinity;
 
-        pages.forEach((page, index) => {
-            const pageCenter = page.offsetTop + page.offsetHeight / 2;
-            const diff = Math.abs(pageCenter - viewerCenter);
+        targetScrolls.forEach((target, index) => {
+            const diff = Math.abs(target - currentScroll);
             if (diff < minDiff) {
                 minDiff = diff;
                 closestIndex = index;
             }
         });
 
-        // direction(-1: 이전 페이지, 1: 다음 페이지) 적용하여 이동할 targetIndex 산출
-        const targetIndex = Math.max(0, Math.min(closestIndex + direction, pages.length - 1));
+        // direction(-1: 이전 반쪽, 1: 다음 반쪽)을 적용해 다음 대상 선택
+        const targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
 
-        // 대상 이미지 페이지의 중앙(block: 'center')으로 부드럽게 이동
-        pages[targetIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // 목표 위치로 부드럽게 스크롤
+        viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
     }
 </script>
-     
+      
 </body>
 </html>
