@@ -5,56 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notion Manga Viewer</title>
 <style>
-    /* 전체 화면 여백 제거 및 노션 임베드 영역 전체 활용 */
+    /* 1. 노션 임베드 영역 꽉 차게 설정 및 외부 스크롤 방지 */
     html, body {
         width: 100%;
         height: 100%;
         margin: 0;
         padding: 0;
-        background-color: #ffffff;
-        font-family: 'Malgun Gothic', sans-serif;
-        user-select: none;
+        background-color: #1a1a1a;
+        font-family: 'Malgun Gothic', -apple-system, sans-serif;
+        user-select: none; /* 연속 클릭 시 텍스트 드래그 방지 */
         overflow: hidden;
     }
         
-    /* 전체 컨테이너 */
+    /* 2. 전체 컨테이너 (Flexbox로 상단 뷰어 + 하단 UI를 완전히 분리) */
     .viewer-wrapper {
         width: 100%;
-        max-width: 800px;
         height: 100%;
+        max-width: 800px; /* 뷰어 최대 너비 */
+        margin: 0 auto;
         display: flex;
         flex-direction: column;
-        position: relative;
-        margin: 0 auto;
+        box-sizing: border-box;
+        background-color: #1a1a1a;
     }
         
-    /* 뷰어 영역 (이미지가 스크롤 되는 곳) */
+    /* 3. 뷰어 영역 (하단 UI와 겹치지 않고 남은 높이를 모두 차지하며 내부 스크롤) */
     .viewer {
-        flex: 1;
+        flex: 1; /* 남은 공간 모두 차지 */
         width: 100%;
         overflow-y: auto;
+        overflow-x: hidden;
         background-color: #1a1a1a;
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        /* 하단 UI 높이(약 100px)만큼만 여백을 두어 마지막 이미지까지 가려지지 않게 처리 */
-        padding-bottom: 120px;
         box-sizing: border-box;
+        padding-bottom: 20px; /* 스크롤 최하단 여백 */
         
         /* 스크롤바 숨기기 */
-        -ms-overflow-style: none;
-        scrollbar-width: none;
+        -ms-overflow-style: none; /* IE, Edge */
+        scrollbar-width: none; /* Firefox */
     }
     
     .viewer::-webkit-scrollbar {
-        display: none;
+        display: none; /* Chrome, Safari, Opera */
     }
         
-    /* 만화 페이지 크기 및 유연한 높이 설정 */
+    /* 만화 페이지 크기 설정 */
     .manga-page {
         width: 100%;
-        flex-shrink: 0;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -72,16 +68,17 @@
         width: 100%;
         height: auto;
         display: block;
-        object-fit: contain;
+        object-fit: contain; /* 비율 유지하며 전체 표시 */
         background-color: #fff;
     }
 
-    /* 하단 UI 오버레이 컨테이너 */
+    /* 4. 하단 컨트롤 UI (독립 영역으로 하단 고정, 절대 이미지를 가리지 않음) */
     .bottom-ui {
-        position: absolute;
-        bottom: 0;
-        left: 0;
+        flex-shrink: 0; /* 높이 고정 */
         width: 100%;
+        background-color: #f4f4f5;
+        border-top: 1px solid #d4d4d8;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
         z-index: 10;
     }
 
@@ -94,7 +91,7 @@
         align-items: center;
         gap: 20px;
         background-color: #e4e4e7;
-        border-top: 1px solid #d4d4d8;
+        border-bottom: 1px solid #d4d4d8;
         font-size: 12px;
         color: #3f3f46;
         box-sizing: border-box;
@@ -117,21 +114,19 @@
     /* 하단 버튼 영역 */
     .controls {
         width: 100%;
-        padding: 10px 15px; 
+        padding: 8px 15px; 
         display: flex;
         flex-direction: row; 
         justify-content: center;
         align-items: center;
         gap: 10px; 
-        background-color: #f4f4f5;
-        border-top: 1px solid #e4e4e7;
         box-sizing: border-box;
     }
         
     .controls .btn-img {
         flex: 1; 
-        padding: 12px 0;
-        font-size: 22px;
+        padding: 10px 0;
+        font-size: 20px;
         font-weight: bold;
         color: #fff;
         background-color: #27272a;
@@ -139,6 +134,11 @@
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         text-align: center;
         box-sizing: border-box;
+        cursor: pointer;
+    }
+
+    .controls .btn-img:active {
+        background-color: #52525b;
     }
 </style>
 </head>
@@ -158,15 +158,15 @@
         </div>
     </div>
     
-    <!-- 하단 컨트롤 UI -->
+    <!-- 하단 컨트롤 UI (뷰어 하단에 별도 배치) -->
     <div class="bottom-ui">
         <div class="mode-selector">
             <label><input type="radio" name="scrollStep" value="2"> 1/2 단위</label>
             <label><input type="radio" name="scrollStep" value="3" checked> 1/3 단위</label>
         </div>
         <div class="controls">
-            <div class="btn-img">∧</div>
-            <div class="btn-img">∨</div>
+            <div class="btn-img" onclick="scrollManga(-1)">∧</div>
+            <div class="btn-img" onclick="scrollManga(1)">∨</div>
         </div>
     </div>
 </div>
@@ -175,6 +175,7 @@
     function scrollManga(direction) {
         const viewer = document.getElementById('mangaViewer');
         const pages = viewer.querySelectorAll('.manga-page');
+        if (!pages.length) return;
         
         const selectedMode = document.querySelector('input[name="scrollStep"]:checked')?.value || '3';
         const steps = parseInt(selectedMode, 10);
@@ -188,22 +189,33 @@
                 targetScrolls.push(pTop + (pHeight * (i / steps)));
             }
         });
-        const currentScroll = viewer.scrollTop;
+
+        // 맨 마지막 컷의 최하단 스크롤 위치를 타겟에 추가
+        const maxScroll = viewer.scrollHeight - viewer.clientHeight;
+        targetScrolls.push(maxScroll);
+
+        // 중복 제거 및 정렬
+        const sortedTargets = [...new Set(targetScrolls.map(v => Math.round(v)))].sort((a, b) => a - b);
+        
+        const currentScroll = Math.round(viewer.scrollTop);
         let closestIndex = 0;
         let minDiff = Infinity;
-        targetScrolls.forEach((target, index) => {
+        
+        sortedTargets.forEach((target, index) => {
             const diff = Math.abs(target - currentScroll);
             if (diff < minDiff) {
                 minDiff = diff;
                 closestIndex = index;
             }
         });
-        const targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
-        viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
+
+        const targetIndex = Math.max(0, Math.min(closestIndex + direction, sortedTargets.length - 1));
+        viewer.scrollTo({ top: sortedTargets[targetIndex], behavior: 'smooth' });
     }
      
     window.addEventListener('click', (e) => {
-        if (e.target.closest('.controls') || e.target.closest('.mode-selector')) {
+        // 하단 UI 클릭 시 스크롤 동작 방지
+        if (e.target.closest('.bottom-ui')) {
             return;
         }
      
@@ -216,6 +228,7 @@
             scrollManga(-1);
         }
     });
+
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
             e.preventDefault();
