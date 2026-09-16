@@ -11,31 +11,32 @@
         padding: 0;
         width: 100%;
         height: 100vh;
-        background-color: #ffffff;
+        background-color: #1a1a1a;
         font-family: 'Malgun Gothic', sans-serif;
         user-select: none; /* 연속 클릭 시 텍스트 드래그 방지 */
         overflow: hidden; /* 브라우저 전체 스크롤 방지 */
     }
         
-    /* 전체 컨테이너 (max-width 제거하여 노션 너비대로 확장) */
+    /* 전체 컨테이너 (max-width 제거로 노션 크기에 맞춰 무한 확장) */
     .viewer-wrapper {
         width: 100%;
-        height: 100%;
+        height: 100vh;
         display: flex;
         flex-direction: column;
         box-sizing: border-box;
     }
         
-    /* 뷰어 영역 (상단 남은 가로/세로 공간을 모두 차지하여 스크롤) */
+    /* 뷰어 영역 (상단 공간을 모두 차지하며 내부 스크롤) */
     .viewer {
-        flex: 1; /* 남은 높이 모두 차지 */
+        flex: 1;
         min-height: 0;
+        width: 100%;
         overflow-y: auto;
-        background-color: #1a1a1a; /* 만화 몰입도를 위한 어두운 배경 */
+        background-color: #1a1a1a;
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding-bottom: 100vh; /* 하단 스크롤 여백 */
+        padding-bottom: 80vh; /* 하단 여백 */
         
         /* 스크롤바 숨기기 */
         -ms-overflow-style: none; /* IE, Edge */
@@ -46,11 +47,10 @@
         display: none; /* Chrome, Safari, Opera */
     }
         
-    /* 만화 페이지 크기 및 비율 설정 */
+    /* 만화 페이지 크기 및 비율 설정 (가로 제한 없이 100% 꽉 차게 설정) */
     .manga-page {
         width: 100%;
-        max-width: 800px; /* 이미지 원고의 최대 너비 제한 (필요 시 조정 가능) */
-        flex-shrink: 0;   /* 비율 왜곡 방지 */
+        flex-shrink: 0;
         aspect-ratio: 1 / 1.414; /* 점프 만화 원고(B4) 비율 */
         display: flex;
         justify-content: center;
@@ -60,7 +60,6 @@
         margin-bottom: 20px;
     }
 
-    /* 마지막 이미지 아래 간격 처리 */
     .manga-page:last-child {
         margin-bottom: 0;
     }
@@ -73,12 +72,13 @@
         background-color: #fff;
     }
 
-    /* 하단 UI 영역 (absolute 해제 후 flex-shrink: 0 적용으로 항상 최하단 고정) */
+    /* 하단 UI 영역 (flex-shrink: 0 으로 항상 화면 최하단에 바 형태로 고정) */
     .bottom-ui {
-        flex-shrink: 0; /* 뷰어가 늘어나도 하단 바 높이는 줄어들지 않음 */
+        flex-shrink: 0;
         width: 100%;
         background-color: #f4f4f5;
-        z-index: 10;
+        z-index: 1000;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
     }
 
     /* 이동 단위 선택 바 */
@@ -124,7 +124,7 @@
         box-sizing: border-box;
     }
         
-    /* 좌/우 50% 크기의 표시 영역 */
+    /* 좌/우 버튼 영역 */
     .controls .btn-img {
         flex: 1; 
         padding: 12px 0;
@@ -136,6 +136,12 @@
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         text-align: center;
         box-sizing: border-box;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .controls .btn-img:active {
+        background-color: #52525b;
     }
 </style>
 </head>
@@ -155,7 +161,7 @@
         </div>
     </div>
     
-    <!-- 뷰어 밖 하단 컨트롤 UI (항상 최하단에 바 형태로 고정) -->
+    <!-- 뷰어 밖 하단 컨트롤 UI (화면 아래에 항상 고정) -->
     <div class="bottom-ui">
         <div class="mode-selector">
             <label><input type="radio" name="scrollStep" value="2"> 1/2 단위</label>
@@ -163,8 +169,8 @@
         </div>
 
         <div class="controls">
-            <div class="btn-img">∧</div>
-            <div class="btn-img">∨</div>
+            <div class="btn-img" onclick="scrollManga(-1)">∧</div>
+            <div class="btn-img" onclick="scrollManga(1)">∨</div>
         </div>
     </div>
 </div>
@@ -204,6 +210,7 @@
         viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
     }
      
+    // 화면 클릭 이벤트 처리 (하단 컨트롤 바 클릭 시 제외)
     window.addEventListener('click', (e) => {
         if (e.target.closest('.bottom-ui')) {
             return;
@@ -219,6 +226,7 @@
         }
     });
 
+    // 방향키 입력 처리
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
             e.preventDefault();
