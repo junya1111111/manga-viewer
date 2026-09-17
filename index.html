@@ -171,7 +171,6 @@
             <label><input type="radio" name="scrollStep" value="3" checked> 1/3 단위</label>
         </div>
         <div class="controls">
-            <!-- onclick 이벤트 삭제됨 -->
             <div class="btn-img">∧</div>
             <div class="btn-img">∨</div>
         </div>
@@ -208,18 +207,19 @@
         const targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
         viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
     }
-    // 전체 이미지 목록 지속 유지형 확대/축소 (핀치 줌 & 더블 탭)
+
+    // 전체 이미지 목록 지속 유지형 확대/축소 (핀치 줌 전용)
     const viewer = document.getElementById('mangaViewer');
     let zoomScale = 1;
     let startDist = 0;
     let initialZoomScale = 1;
     let isPinching = false;
-    let lastTapTime = 0;
+
     function applyZoom(scale) {
-        // 최소 1배 ~ 최대 3배 범위 내에서 확대 상태를 지속 유지
         zoomScale = Math.min(Math.max(1, scale), 3);
         viewer.style.setProperty('--zoom-scale', zoomScale);
     }
+
     viewer.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
             isPinching = true;
@@ -230,10 +230,11 @@
             initialZoomScale = zoomScale;
         }
     }, { passive: false });
+
     viewer.addEventListener('touchmove', (e) => {
         if (e.touches.length === 2 && startDist > 0) {
             isPinching = true;
-            if (e.cancelable) e.preventDefault(); // 브라우저 기본 제스처 방지
+            if (e.cancelable) e.preventDefault();
             const currentDist = Math.hypot(
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
@@ -241,34 +242,30 @@
             applyZoom(initialZoomScale * (currentDist / startDist));
         }
     }, { passive: false });
+
     viewer.addEventListener('touchend', (e) => {
         if (e.touches.length < 2) {
             setTimeout(() => { isPinching = false; }, 300);
         }
-        // 더블 탭 시 확대(2배) / 기본(1배) 토글
-        if (e.touches.length === 0 && e.changedTouches.length === 1) {
-            const now = Date.now();
-            if (now - lastTapTime < 300) {
-                applyZoom(zoomScale > 1.2 ? 1 : 2);
-            }
-            lastTapTime = now;
-        }
+        // 더블 탭 확대/축소 로직 삭제됨
     });
+
     window.addEventListener('click', (e) => {
         if (e.target.closest('.controls') || e.target.closest('.mode-selector') || isPinching) {
             return;
         }
       
-        // 우측 하단 6분의 1 지점 (가로 우측 1/2, 세로 하단 1/3)
+        // 우측 하단 4분의 1 지점 (가로 우측 1/2, 세로 하단 1/2)
         const isRightHalf = e.clientX > window.innerWidth / 2;
-        const isBottomThird = e.clientY > window.innerHeight * (2 / 3);
+        const isBottomHalf = e.clientY > window.innerHeight / 2;
       
-        if (isRightHalf && isBottomThird) {
-            scrollManga(1); 
+        if (isRightHalf && isBottomHalf) {
+            scrollManga(1);  // 아래로 스크롤
         } else {
-            scrollManga(-1);
+            scrollManga(-1); // 위로 스크롤
         }
     });
+
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
             e.preventDefault();
