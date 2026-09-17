@@ -47,7 +47,6 @@
     .viewer::-webkit-scrollbar {
         display: none; /* Chrome, Safari, Opera */
     }
-
     /* 전체 이미지를 감싸는 컨테이너 (일괄 확대용) */
     .manga-container {
         width: calc(100% * var(--zoom-scale, 1)); /* 전체 일괄 확대 적용 */
@@ -70,7 +69,6 @@
         box-sizing: border-box;
         margin-bottom: 20px; /* 이미지 사이 간격 */
     }
-
     /* 마지막 이미지 아래 간격 처리 */
     .manga-page:last-child {
         margin-bottom: 0;
@@ -83,7 +81,6 @@
         object-fit: contain; /* 이미지가 잘리지 않고 비율 유지 */
         background-color: #fff;
     }
-
     /* 하단 UI들을 묶어서 뷰어 위에 띄우는 컨테이너 */
     .bottom-ui {
         position: absolute;
@@ -92,7 +89,6 @@
         width: 100%;
         z-index: 10;
     }
-
     /* 이동 단위 선택 바 */
     .mode-selector {
         width: 100%;
@@ -212,7 +208,6 @@
         const targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
         viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
     }
-
     // 전체 이미지 목록 지속 유지형 확대/축소 (핀치 줌 & 더블 탭)
     const viewer = document.getElementById('mangaViewer');
     let zoomScale = 1;
@@ -220,13 +215,11 @@
     let initialZoomScale = 1;
     let isPinching = false;
     let lastTapTime = 0;
-
     function applyZoom(scale) {
         // 최소 1배 ~ 최대 3배 범위 내에서 확대 상태를 지속 유지
         zoomScale = Math.min(Math.max(1, scale), 3);
         viewer.style.setProperty('--zoom-scale', zoomScale);
     }
-
     viewer.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
             isPinching = true;
@@ -237,7 +230,6 @@
             initialZoomScale = zoomScale;
         }
     }, { passive: false });
-
     viewer.addEventListener('touchmove', (e) => {
         if (e.touches.length === 2 && startDist > 0) {
             isPinching = true;
@@ -249,12 +241,10 @@
             applyZoom(initialZoomScale * (currentDist / startDist));
         }
     }, { passive: false });
-
     viewer.addEventListener('touchend', (e) => {
         if (e.touches.length < 2) {
             setTimeout(() => { isPinching = false; }, 300);
         }
-
         // 더블 탭 시 확대(2배) / 기본(1배) 토글
         if (e.touches.length === 0 && e.changedTouches.length === 1) {
             const now = Date.now();
@@ -264,7 +254,6 @@
             lastTapTime = now;
         }
     });
-
     window.addEventListener('click', (e) => {
         if (e.target.closest('.controls') || e.target.closest('.mode-selector') || isPinching) {
             return;
@@ -280,7 +269,6 @@
             scrollManga(-1);
         }
     });
-
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
             e.preventDefault();
