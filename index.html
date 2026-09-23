@@ -179,6 +179,8 @@
 </div>
         
 <script>
+    let currentAlign = 'right'; // 초기 확대 시 가로 정렬 상태 (우->좌 진행)
+
     function scrollManga(direction) {
         const viewer = document.getElementById('mangaViewer');
         const pages = viewer.querySelectorAll('.manga-page');
@@ -195,6 +197,7 @@
                 targetScrolls.push(pTop + (pHeight * (i / steps)));
             }
         });
+        
         const currentScroll = viewer.scrollTop;
         let closestIndex = 0;
         let minDiff = Infinity;
@@ -205,8 +208,40 @@
                 closestIndex = index;
             }
         });
-        const targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
-        viewer.scrollTo({ top: targetScrolls[targetIndex], behavior: 'smooth' });
+
+        let targetIndex = closestIndex;
+        let targetX = viewer.scrollLeft;
+
+        // 화면이 확대되어 있는 경우 (우 -> 좌 -> 아래로 이동 로직)
+        if (zoomScale > 1) {
+            const maxScrollX = viewer.scrollWidth - viewer.clientWidth;
+            
+            if (direction === 1) { // 다음 화면 터치 시
+                if (currentAlign === 'right') {
+                    currentAlign = 'left';
+                    targetX = 0; // 좌측 정렬 (높이는 유지)
+                } else {
+                    currentAlign = 'right';
+                    targetX = maxScrollX; // 우측 정렬
+                    targetIndex = Math.max(0, Math.min(closestIndex + 1, targetScrolls.length - 1)); // 아래로 1칸 이동
+                }
+            } else { // 이전 화면 터치 시
+                if (currentAlign === 'left') {
+                    currentAlign = 'right';
+                    targetX = maxScrollX; // 우측 정렬 (높이는 유지)
+                } else {
+                    currentAlign = 'left';
+                    targetX = 0; // 좌측 정렬
+                    targetIndex = Math.max(0, Math.min(closestIndex - 1, targetScrolls.length - 1)); // 위로 1칸 이동
+                }
+            }
+        } else {
+            // 확대되지 않은 기본 상태 (기존처럼 상하로만 이동)
+            targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
+            targetX = (viewer.scrollWidth - viewer.clientWidth) / 2; // 가로 중앙 정렬
+        }
+
+        viewer.scrollTo({ top: targetScrolls[targetIndex], left: targetX, behavior: 'smooth' });
     }
     
     // 전체 이미지 목록 지속 유지형 확대/축소 (핀치 줌 전용)
@@ -249,7 +284,6 @@
         if (e.touches.length < 2) {
             setTimeout(() => { isPinching = false; }, 300);
         }
-        // 더블 탭 확대/축소 로직 삭제됨
     });
     
     window.addEventListener('click', (e) => {
