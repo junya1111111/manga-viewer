@@ -29,22 +29,6 @@
         flex-direction: column;
         position: relative; /* 하단 UI 겹치기를 위한 기준점 설정 */
     }
-
-    /* 현재 구역 표시기 UI */
-    #zone-indicator {
-        position: absolute;
-        top: 15px;
-        left: 15px;
-        background-color: rgba(0, 0, 0, 0.7);
-        color: #fff;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 13px;
-        font-weight: bold;
-        z-index: 20;
-        pointer-events: none; /* 터치 방해 금지 */
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
         
     /* 뷰어 영역 (이미지 전체 목록이 스크롤 되는 곳) */
     .viewer {
@@ -97,6 +81,7 @@
         object-fit: contain; /* 이미지가 잘리지 않고 비율 유지 */
         background-color: #fff;
     }
+    
     /* 하단 UI들을 묶어서 뷰어 위에 띄우는 컨테이너 */
     .bottom-ui {
         position: absolute;
@@ -105,20 +90,49 @@
         width: 100%;
         z-index: 10;
     }
+
+    /* 초록색 게이지 바 */
+    #progressBar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 2px; /* 아주 가는 굵기 */
+        background-color: #22c55e; /* 초록색 */
+        width: 0%;
+        z-index: 20;
+        transition: width 0.15s ease-out;
+    }
+
     /* 이동 단위 선택 바 */
     .mode-selector {
         width: 100%;
-        padding: 6px 0;
+        padding: 6px 15px;
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 20px;
         background-color: #e4e4e7;
         border-top: 1px solid #d4d4d8;
         font-size: 12px;
         color: #3f3f46;
         box-sizing: border-box;
+        position: relative; /* 내부 absolute 배치를 위한 기준 */
     }
+
+    /* 번호 표시기 (왼쪽에 고정) */
+    #step-indicator {
+        position: absolute;
+        left: 15px;
+        font-weight: bold;
+        font-size: 14px;
+        color: #27272a;
+    }
+
+    /* 라디오 버튼을 묶어 가운데 정렬 유지 */
+    .radio-group {
+        display: flex;
+        gap: 20px;
+    }
+
     .mode-selector label {
         display: flex;
         align-items: center;
@@ -165,9 +179,6 @@
 <body>
         
 <div class="viewer-wrapper">
-    <!-- 현재 좌표/구역 표시 -->
-    <div id="zone-indicator">현재: 1P - 1구역</div>
-
     <!-- 만화 뷰어 영역 -->
     <div class="viewer" id="mangaViewer">
         <div class="manga-container" id="mangaContainer">
@@ -185,12 +196,17 @@
     
     <!-- 하단 컨트롤 UI -->
     <div class="bottom-ui">
+        <!-- 초록색 진행률 바 -->
+        <div id="progressBar"></div>
         <div class="mode-selector">
-            <label><input type="radio" name="scrollStep" value="2"> 1/2 단위</label>
-            <label><input type="radio" name="scrollStep" value="3" checked> 1/3 단위</label>
+            <!-- 왼쪽 현재 번호 / 전체 번호 표시 -->
+            <div id="step-indicator">0 / 0</div>
+            <div class="radio-group">
+                <label><input type="radio" name="scrollStep" value="2"> 1/2 단위</label>
+                <label><input type="radio" name="scrollStep" value="3" checked> 1/3 단위</label>
+            </div>
         </div>
         <div class="controls">
-            <!-- onclick 이벤트 삭제됨 -->
             <div class="btn-img">∧</div>
             <div class="btn-img">∨</div>
         </div>
@@ -198,7 +214,8 @@
 </div>
         
 <script>
-    let currentAlign = 'right'; // 초기 확대 시 가로 정렬 상태 (우->좌 진행)
+    let currentAlign = 'right'; 
+    const ALIGN_OFFSET = 35; // 화면 정렬 시 살짝 아래로 내려 읽기 편하게 해주는 여백(px)
 
     function scrollManga(direction) {
         const viewer = document.getElementById('mangaViewer');
@@ -213,7 +230,8 @@
             const pHeight = page.offsetHeight;
             
             for (let i = 0; i < steps; i++) {
-                targetScrolls.push(pTop + (pHeight * (i / steps)));
+                // 오프셋을 빼서 목표 스크롤을 살짝 위로 잡아, 내용이 화면에서 살짝 아래로 내려오게 함
+                targetScrolls.push(Math.max(0, pTop + (pHeight * (i / steps)) - ALIGN_OFFSET));
             }
         });
         
@@ -231,39 +249,36 @@
         let targetIndex = closestIndex;
         let targetX = viewer.scrollLeft;
 
-        // 화면이 확대되어 있는 경우 (우 -> 좌 -> 아래로 이동 로직)
         if (zoomScale > 1) {
             const maxScrollX = viewer.scrollWidth - viewer.clientWidth;
             
-            if (direction === 1) { // 다음 화면 터치 시
+            if (direction === 1) { 
                 if (currentAlign === 'right') {
                     currentAlign = 'left';
-                    targetX = 0; // 좌측 정렬 (높이는 유지)
+                    targetX = 0; 
                 } else {
                     currentAlign = 'right';
-                    targetX = maxScrollX; // 우측 정렬
-                    targetIndex = Math.max(0, Math.min(closestIndex + 1, targetScrolls.length - 1)); // 아래로 1칸 이동
+                    targetX = maxScrollX; 
+                    targetIndex = Math.max(0, Math.min(closestIndex + 1, targetScrolls.length - 1)); 
                 }
-            } else { // 이전 화면 터치 시
+            } else { 
                 if (currentAlign === 'left') {
                     currentAlign = 'right';
-                    targetX = maxScrollX; // 우측 정렬 (높이는 유지)
+                    targetX = maxScrollX; 
                 } else {
                     currentAlign = 'left';
-                    targetX = 0; // 좌측 정렬
-                    targetIndex = Math.max(0, Math.min(closestIndex - 1, targetScrolls.length - 1)); // 위로 1칸 이동
+                    targetX = 0; 
+                    targetIndex = Math.max(0, Math.min(closestIndex - 1, targetScrolls.length - 1)); 
                 }
             }
         } else {
-            // 확대되지 않은 기본 상태 (기존처럼 상하로만 이동)
             targetIndex = Math.max(0, Math.min(closestIndex + direction, targetScrolls.length - 1));
-            targetX = (viewer.scrollWidth - viewer.clientWidth) / 2; // 가로 중앙 정렬
+            targetX = (viewer.scrollWidth - viewer.clientWidth) / 2; 
         }
 
         viewer.scrollTo({ top: targetScrolls[targetIndex], left: targetX, behavior: 'smooth' });
     }
     
-    // 전체 이미지 목록 지속 유지형 확대/축소 (핀치 줌 전용)
     const viewer = document.getElementById('mangaViewer');
     let zoomScale = 1;
     let startDist = 0;
@@ -271,10 +286,9 @@
     let isPinching = false;
     
     function applyZoom(scale) {
-        // 최소 1배 ~ 최대 3배 범위 내에서 확대 상태를 지속 유지
         zoomScale = Math.min(Math.max(1, scale), 3);
         viewer.style.setProperty('--zoom-scale', zoomScale);
-        updateZoneIndicator(); // 확대/축소 시에도 좌표 업데이트
+        updateZoneIndicator();
     }
     
     viewer.addEventListener('touchstart', (e) => {
@@ -291,7 +305,7 @@
     viewer.addEventListener('touchmove', (e) => {
         if (e.touches.length === 2 && startDist > 0) {
             isPinching = true;
-            if (e.cancelable) e.preventDefault(); // 브라우저 기본 제스처 방지
+            if (e.cancelable) e.preventDefault(); 
             const currentDist = Math.hypot(
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
@@ -311,7 +325,6 @@
             return;
         }
         
-        // 우측 하단 4분의 1 지점 (가로 우측 1/2, 세로 하단 1/2)
         const isRightHalf = e.clientX > window.innerWidth / 2;
         const isBottomHalf = e.clientY > window.innerHeight / 2;
         
@@ -333,7 +346,7 @@
     });
 
     // ----------------------------------------------------
-    // 실시간 현재 좌표(구역) 업데이트 로직 추가
+    // 실시간 상태 업데이트 로직 (게이지 바 & 번호)
     // ----------------------------------------------------
     function updateZoneIndicator() {
         const pages = viewer.querySelectorAll('.manga-page');
@@ -345,7 +358,7 @@
             const pTop = page.offsetTop;
             const pHeight = page.offsetHeight;
             for (let i = 0; i < steps; i++) {
-                targetScrolls.push(pTop + (pHeight * (i / steps)));
+                targetScrolls.push(Math.max(0, pTop + (pHeight * (i / steps)) - ALIGN_OFFSET));
             }
         });
         
@@ -359,28 +372,33 @@
             }
         });
 
-        const pageNum = Math.floor(closestIndex / steps) + 1;
-        const stepNum = (closestIndex % steps) + 1;
-        const indicator = document.getElementById('zone-indicator');
+        const indicator = document.getElementById('step-indicator');
+        const progressBar = document.getElementById('progressBar');
 
+        let currentStepNum = 0;
+        let totalStepsNum = targetScrolls.length;
+
+        // 확대 상태일 때는 좌/우 이동까지 포함하여 전체 단계를 2배로 계산
         if (zoomScale > 1) {
+            totalStepsNum = targetScrolls.length * 2;
             const maxScrollX = viewer.scrollWidth - viewer.clientWidth;
-            const isRight = viewer.scrollLeft >= (maxScrollX / 2) - 10; // 중간 이상 우측에 있으면 '우측' 판정
-            const alignText = isRight ? '우측' : '좌측';
-            indicator.innerText = `현재: ${pageNum}P - ${stepNum}구역 (${alignText})`;
+            const isRight = viewer.scrollLeft >= (maxScrollX / 2) - 10;
+            currentStepNum = (closestIndex * 2) + (isRight ? 1 : 2);
         } else {
-            indicator.innerText = `현재: ${pageNum}P - ${stepNum}구역`;
+            currentStepNum = closestIndex + 1;
         }
+
+        // 텍스트(번호만) 및 게이지 바 업데이트
+        indicator.innerText = `${currentStepNum} / ${totalStepsNum}`;
+        progressBar.style.width = `${(currentStepNum / totalStepsNum) * 100}%`;
     }
 
-    // 스크롤, 리사이즈, 단위 변경 시 인디케이터 즉각 업데이트
-    viewer.addEventListener('scroll', updateZoneIndicator);
+    viewer.addEventListener('scroll', updateZoneIndicator, { passive: true });
     window.addEventListener('resize', updateZoneIndicator);
     document.querySelectorAll('input[name="scrollStep"]').forEach(el => {
         el.addEventListener('change', updateZoneIndicator);
     });
 
-    // 렌더링 후 초기값 표기를 위한 실행
     setTimeout(updateZoneIndicator, 50);
 </script>
         
