@@ -360,8 +360,8 @@
             if (now - arrowStartTime >= 500) {
                 e.preventDefault(); // 브라우저 기본 스크롤 동작 방지
                 
-                // 좌표 이동이 너무 빠르게 다다닥 넘어가지 않도록 0.3초(300ms) 간격 제한
-                if (now - lastJumpTime > 300) {
+                // 좌표 이동 간격을 0.5초(500ms)로 제한
+                if (now - lastJumpTime >= 500) {
                     lastJumpTime = now;
                     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                         scrollManga(1);
