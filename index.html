@@ -58,21 +58,15 @@
         padding-bottom: 100vh; /* 하단 스크롤 여백 */
     }
         
-    /* 
-     * [수정됨] 만화 페이지 크기 설정
-     * 고정 비율(aspect-ratio)과 중앙 정렬을 없애고 
-     * 이미지 실제 크기에 꼭 맞게 밀착되도록 변경
-     */
+    /* 만화 페이지 간격 설정 (하얀 여백 없이 검은 여백 추가) */
     .manga-page {
         width: 100%;
         display: block; 
-        margin-bottom: 0; /* 이미지 사이의 여백 제거 (연결되게) */
+        margin-bottom: 20px; /* 이미지 사이의 여백 */
+        border-bottom: 2px solid #000; /* 이미지 구분을 위한 얇은 검은 선 */
     }
         
-    /* 
-     * [수정됨] 실제 만화 이미지 스타일
-     * 여백(흰 배경)을 없애고 실제 이미지 비율대로 공간을 차지하게 함
-     */
+    /* 실제 만화 이미지 스타일 */
     .manga-page img {
         width: 100%;
         height: auto; 
@@ -328,15 +322,15 @@
     });
     
     // ----------------------------------------------------
-    // [수정됨] 화면 터치 시 구역 비율 (이미지에 맞춰 빨간색 영역 축소)
+    // 화면 터치 시 구역 비율 (빨간색 영역 축소)
     // ----------------------------------------------------
     window.addEventListener('click', (e) => {
         if (e.target.closest('.controls') || e.target.closest('.mode-selector') || isPinching) {
             return;
         }
         
-        // 빨간색 구역: 가로 우측 50%, 세로 하단 40% (0.6 이상) 지점
-        const isRedZone = e.clientX > window.innerWidth * 0.5 && e.clientY > window.innerHeight * 0.6;
+        // 빨간색 구역: 가로 우측 50% & 세로 하단 35% (0.65 이상) 지점
+        const isRedZone = e.clientX > window.innerWidth * 0.5 && e.clientY > window.innerHeight * 0.65;
         
         if (isRedZone) {
             scrollManga(1); 
@@ -346,7 +340,7 @@
     });
     
     // ----------------------------------------------------
-    // [수정됨] 키보드 이벤트 (2초 대기 로직 추가)
+    // 키보드 이벤트 (0.5초 대기 로직)
     // ----------------------------------------------------
     let arrowStartTime = 0;
     let lastArrowTime = 0;
@@ -356,14 +350,14 @@
         if (['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'].includes(e.key)) {
             const now = Date.now();
             
-            // 키 입력이 0.5초(500ms) 이상 끊겼다가 다시 입력되면 타이머 리셋 (처음 누른 것으로 간주)
-            if (now - lastArrowTime > 500) {
+            // 키 입력이 0.2초(200ms) 이상 끊겼다가 다시 입력되면 타이머 리셋
+            if (now - lastArrowTime > 200) {
                 arrowStartTime = now;
             }
             lastArrowTime = now;
 
-            // 방향키를 연속으로 누른 지 2초(2000ms)가 지나면 좌표 단위 이동 모드로 전환
-            if (now - arrowStartTime >= 2000) {
+            // 방향키를 연속으로 누른 지 0.5초(500ms)가 지나면 좌표 단위 이동 모드로 전환
+            if (now - arrowStartTime >= 500) {
                 e.preventDefault(); // 브라우저 기본 스크롤 동작 방지
                 
                 // 좌표 이동이 너무 빠르게 다다닥 넘어가지 않도록 0.3초(300ms) 간격 제한
@@ -376,7 +370,7 @@
                     }
                 }
             }
-            // 2초가 지나지 않았다면 e.preventDefault()를 실행하지 않아 브라우저 기본 스크롤 수행
+            // 0.5초가 지나지 않았다면 e.preventDefault()를 실행하지 않아 브라우저 기본 스크롤 수행
         }
     });
 
