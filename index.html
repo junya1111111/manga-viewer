@@ -29,6 +29,22 @@
         flex-direction: column;
         position: relative; /* 하단 UI 겹치기를 위한 기준점 설정 */
     }
+
+    /* 현재 구역 표시기 UI */
+    #zone-indicator {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: bold;
+        z-index: 20;
+        pointer-events: none; /* 터치 방해 금지 */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
         
     /* 뷰어 영역 (이미지 전체 목록이 스크롤 되는 곳) */
     .viewer {
@@ -149,6 +165,9 @@
 <body>
         
 <div class="viewer-wrapper">
+    <!-- 현재 좌표/구역 표시 -->
+    <div id="zone-indicator">현재: 1P - 1구역</div>
+
     <!-- 만화 뷰어 영역 -->
     <div class="viewer" id="mangaViewer">
         <div class="manga-container" id="mangaContainer">
@@ -255,6 +274,7 @@
         // 최소 1배 ~ 최대 3배 범위 내에서 확대 상태를 지속 유지
         zoomScale = Math.min(Math.max(1, scale), 3);
         viewer.style.setProperty('--zoom-scale', zoomScale);
+        updateZoneIndicator(); // 확대/축소 시에도 좌표 업데이트
     }
     
     viewer.addEventListener('touchstart', (e) => {
@@ -311,6 +331,57 @@
             scrollManga(-1);
         }
     });
+
+    // ----------------------------------------------------
+    // 실시간 현재 좌표(구역) 업데이트 로직 추가
+    // ----------------------------------------------------
+    function updateZoneIndicator() {
+        const pages = viewer.querySelectorAll('.manga-page');
+        const selectedMode = document.querySelector('input[name="scrollStep"]:checked')?.value || '3';
+        const steps = parseInt(selectedMode, 10);
+        
+        const targetScrolls = [];
+        pages.forEach((page) => {
+            const pTop = page.offsetTop;
+            const pHeight = page.offsetHeight;
+            for (let i = 0; i < steps; i++) {
+                targetScrolls.push(pTop + (pHeight * (i / steps)));
+            }
+        });
+        
+        let closestIndex = 0;
+        let minDiff = Infinity;
+        targetScrolls.forEach((target, index) => {
+            const diff = Math.abs(target - viewer.scrollTop);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestIndex = index;
+            }
+        });
+
+        const pageNum = Math.floor(closestIndex / steps) + 1;
+        const stepNum = (closestIndex % steps) + 1;
+        const indicator = document.getElementById('zone-indicator');
+
+        if (zoomScale > 1) {
+            const maxScrollX = viewer.scrollWidth - viewer.clientWidth;
+            const isRight = viewer.scrollLeft >= (maxScrollX / 2) - 10; // 중간 이상 우측에 있으면 '우측' 판정
+            const alignText = isRight ? '우측' : '좌측';
+            indicator.innerText = `현재: ${pageNum}P - ${stepNum}구역 (${alignText})`;
+        } else {
+            indicator.innerText = `현재: ${pageNum}P - ${stepNum}구역`;
+        }
+    }
+
+    // 스크롤, 리사이즈, 단위 변경 시 인디케이터 즉각 업데이트
+    viewer.addEventListener('scroll', updateZoneIndicator);
+    window.addEventListener('resize', updateZoneIndicator);
+    document.querySelectorAll('input[name="scrollStep"]').forEach(el => {
+        el.addEventListener('change', updateZoneIndicator);
+    });
+
+    // 렌더링 후 초기값 표기를 위한 실행
+    setTimeout(updateZoneIndicator, 50);
 </script>
         
 </body>
